@@ -1,0 +1,59 @@
+// TuGallo — registro digital de bancas / criaderos y sus linajes.
+// Modela el "Registro de Gallos" físico: placa, placa del padre/madre, sexo,
+// color, cresta, marcaje y observaciones. Sin registro de peleas, por diseño.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // SQLite para desarrollo local sin configuración. Para producción cambia el
+  // provider a "postgresql" y apunta DATABASE_URL a una instancia Postgres.
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Una banca / criadero.
+model Banca {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  owner       String?
+  location    String?
+  description String?
+  logoUrl     String?
+  foundedYear Int?
+  birds       Bird[]
+  createdAt   DateTime @default(now())
+}
+
+// Una ave del registro. El linaje se rastrea por PLACA (como en el libro):
+// placaPadre / placaMadre apuntan a la placa de los progenitores, que pueden
+// o no estar registrados como aves en la misma banca.
+model Bird {
+  id            String    @id @default(cuid())
+  placa         String // PLACA No — número de placa/anilla
+  placaPadre    String? // PLACA DEL PADRE
+  placaMadre    String? // PLACA DE LA MADRE
+  sexo          String    @default("MALE") // MALE (Gallo) | FEMALE (Gallina)
+  color         String?
+  cresta        String? // tipo de cresta
+  marcaje       String? // MARCAJE NO.
+  observaciones String?
+
+  // Estado de vida (función pedida: "si están con nosotros o no").
+  lifeStatus   String    @default("LIVING") // LIVING | DECEASED
+  deceasedDate DateTime?
+
+  photoUrl String?
+
+  bancaId String
+  banca   Banca  @relation(fields: [bancaId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([bancaId, placa])
+  @@index([bancaId])
+  @@index([bancaId, placaPadre])
+  @@index([bancaId, placaMadre])
+}
