@@ -11,28 +11,78 @@ ave (**vivo / difunto**), búsqueda de linaje y descendencia.
 ## Stack
 
 - **Next.js 15** (App Router) + TypeScript + **Server Actions** (alta/edición/borrado)
-- **Tailwind CSS** (tema vibrante, claro)
-- **Prisma** ORM sobre **SQLite** (sin configuración para desarrollo local)
+- **Tailwind CSS** (tema vibrante)
+- **Prisma** ORM sobre **PostgreSQL** (Neon)
 
-## Empezar
+---
+
+## 🚀 Desplegar en Vercel + Neon (recomendado)
+
+Esta es la guía completa para poner el sitio en vivo, gratis.
+
+### Paso 1 — Crea la base de datos en Neon
+
+1. Entra a **[neon.tech](https://neon.tech)** e inicia sesión (puedes usar tu
+   cuenta de GitHub).
+2. **Create project** → nómbralo `tugallo` → región la más cercana (US East).
+3. En **Connection string**, **desmarca "Connection pooling"** (queremos la
+   conexión **directa**) y **copia** la cadena. Se ve así:
+   `postgresql://usuario:clave@ep-xxxx.us-east-2.aws.neon.tech/neondb?sslmode=require`
+
+### Paso 2 — Importa el repo en Vercel
+
+1. Entra a **[vercel.com/new](https://vercel.com/new)** con tu cuenta de GitHub.
+2. Elige **Import** en el repositorio **`PR-botsAI/tugallo`**.
+
+### Paso 3 — Variables de entorno (antes de desplegar)
+
+En la pantalla de import de Vercel, abre **Environment Variables** y añade:
+
+| Name                  | Value                                            |
+| --------------------- | ------------------------------------------------ |
+| `DATABASE_URL`        | la cadena de Neon del Paso 1                      |
+| `NEXT_PUBLIC_SITE_URL`| `https://tugallo.vercel.app` (ajusta luego)       |
+
+### Paso 4 — Deploy
+
+Pulsa **Deploy**. El build corre `prisma generate && prisma db push` (crea las
+tablas en Neon automáticamente) y luego compila Next.js. En ~2 min tendrás tu
+URL en vivo.
+
+### Paso 5 — Crea tu banca
+
+Abre el sitio → **+ Nueva banca** → llena los datos → **+ Agregar ave**. Los
+formularios guardan directo en Neon. El sitio arranca vacío (sin datos de
+ejemplo) para que registres tus aves reales.
+
+> **Dominio propio:** en Vercel → Settings → Domains puedes conectar
+> `tugallo.com` o el que quieras. Recuerda actualizar `NEXT_PUBLIC_SITE_URL`.
+
+---
+
+## Desarrollo local
+
+Ahora la app usa Postgres (igual que en producción), así que necesitas una URL
+de Neon también para local (puedes crear un segundo proyecto/branch gratis).
 
 ```bash
-npm install          # instala dependencias
-npm run db:push      # crea la base de datos
-npm run db:seed      # carga datos de ejemplo (Banca Josué López + otra)
-npm run dev          # http://localhost:3000
+cp .env.example .env     # pega tu DATABASE_URL de Neon
+npm install
+npm run db:push          # crea las tablas
+npm run db:seed          # (opcional) datos de ejemplo
+npm run dev              # http://localhost:3000
 ```
 
 ### Comandos
 
 | Comando             | Qué hace                                          |
 | ------------------- | ------------------------------------------------- |
-| `npm run db:push`   | Aplica el esquema a la base de datos              |
+| `npm run db:push`   | Crea/actualiza las tablas según el esquema        |
 | `npm run db:seed`   | Carga datos de ejemplo                            |
 | `npm run db:studio` | Abre Prisma Studio para ver/editar datos          |
 | `npm run build`     | Compila para producción                           |
 
-> Para empezar de cero borra `prisma/dev.db` y vuelve a correr `db:push` + `db:seed`.
+---
 
 ## Cómo funciona
 
@@ -42,8 +92,8 @@ npm run dev          # http://localhost:3000
   `lifeStatus` (Vivo/Difunto) con fecha de fallecimiento opcional y foto.
 - **Linaje por placa** — `placaPadre`/`placaMadre` apuntan a la placa de los
   progenitores. Si esa placa existe en la banca, la app la convierte en un
-  enlace; si no, la muestra como referencia (ave no registrada). La
-  descendencia se calcula buscando aves cuyo padre o madre sea esta placa.
+  enlace; si no, la muestra como referencia. La descendencia se calcula
+  buscando aves cuyo padre o madre sea esta placa.
 
 ### Páginas
 
@@ -53,37 +103,10 @@ npm run dev          # http://localhost:3000
 - `/bancas/[slug]/nueva` — alta de ave.
 - `/aves/[id]` y `/aves/[id]/editar` — detalle, linaje, descendencia y edición.
 
-## Despliegue
-
-Esta app es **dinámica** (Server Components + Server Actions + base de datos),
-así que necesita un servidor — no funciona como sitio estático puro.
-
-### Opción recomendada: Vercel + Postgres (mantiene TODAS las funciones)
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/PR-botsAI/tugallo)
-
-1. Conecta este repositorio en [vercel.com/new](https://vercel.com/new).
-2. Añade una base de datos Postgres gratis (Vercel Postgres o
-   [Neon](https://neon.tech)) y copia su URL.
-3. En el proyecto de Vercel define las variables:
-   - `DATABASE_URL` = la URL de Postgres
-   - `NEXT_PUBLIC_SITE_URL` = la URL final del sitio
-4. Cambia `provider` a `"postgresql"` en `prisma/schema.prisma`, haz commit, y
-   Vercel desplegará automáticamente.
-
-> El `build` ya corre `prisma generate`. Para la primera carga de datos puedes
-> correr `npm run db:seed` apuntando `DATABASE_URL` a tu Postgres.
-
-## Pasar a producción (Postgres)
-
-1. En `prisma/schema.prisma` cambia `provider = "sqlite"` por `"postgresql"`.
-2. Apunta `DATABASE_URL` a tu instancia (Neon, Supabase, etc.).
-3. `npx prisma migrate dev --name init`.
-
 ## Próximos pasos sugeridos
 
 - **Autenticación** para que cada dueño edite solo su banca (hoy cualquiera con
   acceso puede editar).
-- **Subida de fotos** (Supabase Storage / S3) en vez de pegar URL.
+- **Subida de fotos** (Vercel Blob / Supabase Storage) en vez de pegar URL.
 - **Búsqueda** global por placa y banca.
 - Árbol de linaje de varias generaciones e impresión/exportación del registro.
