@@ -7,9 +7,9 @@ generator client {
 }
 
 datasource db {
-  // SQLite para desarrollo local sin configuración. Para producción cambia el
-  // provider a "postgresql" y apunta DATABASE_URL a una instancia Postgres.
-  provider = "sqlite"
+  // Postgres (Neon) en local y en producción. DATABASE_URL debe apuntar a una
+  // instancia Postgres; en Neon usa la cadena de conexión DIRECTA (sin -pooler).
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
